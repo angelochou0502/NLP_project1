@@ -37,13 +37,13 @@ def evaluate(predict , test_label):
 	num_1 = len(index_1)
 	num_2 = len(index_2)
 	num_3 = len(index_3)
-	print('real answer:' , num_1 , num_2 , num_3)
+	print('%-15s'%('real answer:') , num_1 , num_2 , num_3)
 	[num_1_pre , num_2_pre , num_3_pre] = get_indices(predict)
-	print('predict answer:' , len(num_1_pre) , len(num_2_pre) , len(num_3_pre))
+	print('%-15s'%('predict answer:') , len(num_1_pre) , len(num_2_pre) , len(num_3_pre))
 	num_1_ans = get_pre_ans(predict , index_1 , [1,0,0])
 	num_2_ans = get_pre_ans(predict , index_2 , [0,1,0])
 	num_3_ans = get_pre_ans(predict , index_3 , [0,0,1])
-	print('rigth answer:' , num_1_ans , num_2_ans , num_3_ans)
+	print('%-15s'%('rigth answer:') , num_1_ans , num_2_ans , num_3_ans)
 
 	#calculate macro-f1 score and miro-f1 score
 	precision_1 = num_1_ans / len(num_1_pre)
@@ -79,7 +79,7 @@ def label(predict):
 
 def main():
 	#get best weight
-	list_of_files = glob.glob('./model/rnn/*')
+	list_of_files = glob.glob('./model/%s/*' %(sys.argv[1]))
 	latest_file = max(list_of_files , key = os.path.getctime)
 	model = load_model(latest_file)
 

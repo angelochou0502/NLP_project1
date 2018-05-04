@@ -3,6 +3,7 @@ import re
 import numpy as np
 import pickle
 import os
+import sys
 import keras
 from keras.layers.core import Dense, Dropout
 from keras.preprocessing.text import Tokenizer
@@ -58,13 +59,14 @@ def get_snippet_label(train_dics):
 			train_snippet.append(preprocess(snippet))
 			train_label.append(label)
 	train_snippet = np.array(train_snippet)
-	train_labe = np.array(train_label)
+	train_label = np.array(train_label)
 	return [train_snippet , train_label]
 
 def create_rnn_model(embedding_layer):
 	sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype = 'int32')
 	embedded_sequences = embedding_layer(sequence_input)
 	x = Bidirectional((LSTM(100 , return_sequences = True)) , merge_mode = 'sum')(embedded_sequences)
+	x = Bidirectional((LSTM(100 , return_sequences = True)) , merge_mode = 'sum')(x)
 	x = GlobalMaxPooling1D()(x)
 	#x = Flatten()(x)
 	#x = Dense(128, activation='relu')(x)
@@ -117,7 +119,7 @@ def main():
 	#pad to the same length
 	train_data = pad_sequences(sequences ,maxlen = MAX_SEQUENCE_LENGTH)
 	print('Shape of data tensor:', train_data.shape)
-	print('Shape of label tensor:', np.array(train_label).shape)
+	print('Shape of label tensor:', train_label.shape)
 
 	# split the data into a training set and a validation set
 	indices = np.arange(train_data.shape[0])
@@ -137,7 +139,8 @@ def main():
 	#create rnn model
 	rnn_model = create_rnn_model(embedding_layer)
 	esCallBack = EarlyStopping(monitor='val_loss' , min_delta= 0 , patience = 5 , verbose = 0 , mode = 'auto')
-	chCallBack = ModelCheckpoint('./model/rnn/weights.{epoch:02d}-{val_loss:.4f}.h5' , monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False, mode='auto', period=1)
+	os.makedirs('./model/%s' %(sys.argv[1]))
+	chCallBack = ModelCheckpoint('./model/%s/weights.{epoch:02d}-{val_loss:.4f}.h5' %(sys.argv[1]) , monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False, mode='auto', period=1)
 	rnn_model.fit(x_train , y_train , validation_data = (x_val , y_val) , epochs = 15 , batch_size = 10 , callbacks = [esCallBack , chCallBack])
 	#rnn_model.save('model/rnn.h5')
 

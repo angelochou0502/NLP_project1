@@ -2,6 +2,9 @@
 
 Fine-grained Sentiment Analysis on Financial Microblogs  
 
+## Environment
+MacOS 10.13.1
+
 ## Description
 
 This project classifies the texts in twitter to one of three types(Bullish/Bearish/Natural)  
