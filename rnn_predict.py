@@ -31,8 +31,6 @@ def get_pre_ans(predict , index , answer):
 	return num
 
 def evaluate(predict , test_label):
-	#eval precision and recall
-	#precision:
 	[index_1 , index_2 , index_3] = get_indices(test_label)
 	num_1 = len(index_1)
 	num_2 = len(index_2)

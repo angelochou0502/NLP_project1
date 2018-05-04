@@ -16,7 +16,8 @@ from keras.callbacks import EarlyStopping , ModelCheckpoint
 
 MAX_SEQUENCE_LENGTH = 15
 GLOVE_DIR = "/Users/angelocsc/Desktop/NTU/NLPLab/glove.6B/" #define the directory store glove
-EMBEDDING_DIM = 100
+FIN_DIR = "./NTUSD-Fin"
+EMBEDDING_DIM = 300
 
 def get_json(train_file):
 	with open(train_file , 'r') as f:
@@ -66,10 +67,15 @@ def create_rnn_model(embedding_layer):
 	sequence_input = Input(shape=(MAX_SEQUENCE_LENGTH,), dtype = 'int32')
 	embedded_sequences = embedding_layer(sequence_input)
 	x = Bidirectional((LSTM(100 , return_sequences = True)) , merge_mode = 'sum')(embedded_sequences)
-	x = Bidirectional((LSTM(100 , return_sequences = True)) , merge_mode = 'sum')(x)
 	x = GlobalMaxPooling1D()(x)
 	#x = Flatten()(x)
 	#x = Dense(128, activation='relu')(x)
+	''' make model deeper
+	x = Dense(256 , activation = 'relu')(x)
+	x = Dropout(.5)(x)
+	x = Dense(256 , activation = 'relu')(x)
+	x = Dropout(.5)(x)
+	'''
 	preds = Dense( 3, activation='softmax')(x)
 
 	model = Model(sequence_input, preds)
@@ -80,15 +86,23 @@ def create_rnn_model(embedding_layer):
 				layer_output = get_1st_layer_output([embedded_sequences])[0]'''
 	return model 
 
-def get_embeddinglayer(word_index):
+def get_embeddinglayer(word_index , word2vec_file):
 	embeddings_index = {}
-	f = open(os.path.join(GLOVE_DIR, 'glove.6B.100d.txt'))
-	for line in f:
-	    values = line.split()
-	    word = values[0]
-	    coefs = np.asarray(values[1:], dtype='float32')
-	    embeddings_index[word] = coefs
-	f.close()
+	if(word2vec_file == "glove"):
+		f = open(os.path.join(GLOVE_DIR, 'glove.6B.300d.txt'))
+		for line in f:
+		    values = line.split()
+		    word = values[0]
+		    coefs = np.asarray(values[1:], dtype='float32')
+		    embeddings_index[word] = coefs
+		f.close()
+	elif(word2vec_file == "NTUSD-Fin"):
+		with open(os.path.join(FIN_DIR , 'NTUSD_Fin_word_v1.0.json')) as f:
+			word_dics = json.load(f)
+		for word_dic in word_dics:
+			word = word_dic["token"]
+			coefs = word_dic["word_vec"]
+			embeddings_index[word] = coefs
 	embedding_matrix = np.zeros((len(word_index) + 1, EMBEDDING_DIM))
 	for word, i in word_index.items():
 	    embedding_vector = embeddings_index.get(word)
@@ -128,20 +142,24 @@ def main():
 	labels = train_label[indices]
 	nb_validation_samples = int(0.1 * data.shape[0])
 
+	#random choos train and validation data. 
+	#but if we want to compare different model, we should not use this.
 	x_train = data[:-nb_validation_samples]
 	y_train = labels[:-nb_validation_samples]
 	x_val = data[-nb_validation_samples:]
 	y_val = labels[-nb_validation_samples:]
 
 	#preparing embedding layer with word_index
-	embedding_layer = get_embeddinglayer(word_index)
+	word2vec_file = 'glove'
+	embedding_layer = get_embeddinglayer(word_index , word2vec_file)
 
 	#create rnn model
 	rnn_model = create_rnn_model(embedding_layer)
-	esCallBack = EarlyStopping(monitor='val_loss' , min_delta= 0 , patience = 5 , verbose = 0 , mode = 'auto')
+	esCallBack = EarlyStopping(monitor='val_loss' , min_delta= 0 , patience = 7 , verbose = 0 , mode = 'auto')
 	os.makedirs('./model/%s' %(sys.argv[1]))
 	chCallBack = ModelCheckpoint('./model/%s/weights.{epoch:02d}-{val_loss:.4f}.h5' %(sys.argv[1]) , monitor='val_loss', verbose=0, save_best_only=True, save_weights_only=False, mode='auto', period=1)
-	rnn_model.fit(x_train , y_train , validation_data = (x_val , y_val) , epochs = 15 , batch_size = 10 , callbacks = [esCallBack , chCallBack])
+	#rnn_model.fit(x_train , y_train , validation_data = (x_val , y_val) , epochs = 15 , batch_size = 10 , callbacks = [esCallBack , chCallBack])
+	rnn_model.fit(data , labels , validation_split = .1 , epochs = 15 , batch_size = 10 , callbacks = [esCallBack , chCallBack])
 	#rnn_model.save('model/rnn.h5')
 
 if __name__ == "__main__":
